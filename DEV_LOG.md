@@ -60,10 +60,10 @@ I'll want to right-shift the result in an array, so I'll convert it here as well
 
 Reference: abcdefghijklmnopqrstuvwxyz
 
-Input string: "Abc" ([A, b, c])
-Abc in ASCII: 65, 98, 99
-Shift: 5
-Vwx in ASCII: 86, 119, 120
+Input string: "Abc" ([A, b, c])  
+Abc in ASCII: 65, 98, 99  
+Shift: 5  
+Vwx in ASCII: 86, 119, 120  
 Output string: "Vwx" ([V, w, x])
 
 ```ruby
@@ -92,48 +92,22 @@ This function call will assign the result to `ascii_code`:
 
 In order for A to wrap back to Z (and a to z), I need to reset the shift count from the top of the range of allowed ASCII numbers once it exceeds the minimum ASCII number.
 
-~~Wrap numbers with upper limit: [modulo method StackOverflow.com](https://stackoverflow.com/questions/10927914/limit-a-number-and-rotate-it-within-a-range)~~
-
-~~Linked solution is incorrect (12 % 12 is 0, not 12), but I can make it work by adding +1 to the formula.~~  
-~~To use a custom number, I need to subtract the `min` from the `num`, and % from the `max`/`min` number value (+1) (`max` - `min` will give one number short of the actual value), and add the `min` number back in.~~
-
 **Note:** Numbers outside these ranges will be invalid and trigger an error message.
 
-~~((`num` - `min`)) % ((`max` - `min`) + 1) + `min`~~  
-~~so if `num` = `120`, and `max` = `122` and `min` = `65`,~~  
-~~((`120` - `65`)) % ((`122` - `65`) + 1) + `65`~~  
-~~55 % (57 + 1) + 65~~  
-~~55 % 58 + 65~~  
-~~55 + 65~~  
-~~120~~
-
-~~**note: **122 wraps to 97, 90 wraps to 65~~
-
-~~def wrap_range_of_nums(num)~~  
-~~if num >= 97 && num <= 122 do~~  
-~~min = 97~~  
-~~max = 122~~
-
-~~elsif num >= 65 && num <= 90 do~~  
-~~min = 65~~  
-~~max = 90~~
-
-~~else return puts "error message"~~  
-~~end~~  
-~~end~~
-
-For the life of me, I can't figure out why I was thinking about wrapping the numbers in such a literal way. I can just use simple math:  
-When the right-shift takes us below `min_uppercase`/`min_lowercase`, I'll just subtract from `max_uppercase`/`max_lowercase`.
+When the right-shift takes us below `min_uppercase`/`min_lowercase`, I'll subtract from `max_uppercase`/`max_lowercase`.
 
 abcdefghijklmnopqrstuvwxyz
 
 Input string: `"Abc"`  
-`[A, b, c]` in ASCII is [65, 98, 99]  
+`[A, b, c]` in ASCII: [65, 98, 99]  
 `shift_value`: 5  
-`[V, w, x]` in ASCII is [86, 119, 120]  
+`[V, w, x]` in ASCII: [86, 119, 120]  
 Output string: `"Vwx"`
 
-**Tracing my logic:**  
+**Tracing my logic:**
+
+<details>
+<summary>TLDR</summary>
 Note: _Allowed range_ is the difference between `shifted_num` and `min_uppercase`/`min_lowercase` which **must be** a non-negative number between and `max_uppercase` (90) / `max_lowercase` (122) after right-shifting a character. Negative numbers exceed the _allowed range_.
 
 So char "A" (65) - `shift_value` (5) is `shifted_num` (60)  
@@ -151,12 +125,17 @@ So `char` "c" (99) - `shift_value` (5) is `shifted_num` (94)
 So we take `wrap_adjust` (3) from `max_lowercase` (122) to get `adjusted_shift` (119), which will later convert to a "x".  
 We return `adjusted_shift` (119) to `shifted_ascii_code`
 
+</details>
+
 Looks good to me. So I should do something like this:
 
 **Note:** This would be done outside the helper:
 `shifted_num = char - shift_value`
 
-**AHA moment:** JavaScript and Ruby handle if statements differently. In Ruby, the last one evaluated returns false if the conditions aren't met, which caused me to return [nil, 118, 119] instead of [65,118, 119]. That took me an hour of debugging and finally trying a switch case instead of and if statement, which of course worked beautifully. Two independent if blocks do not work in Ruby, use case statements instead.
+> **Lesson learned:**  
+> TLDR: Ruby's implicit returns means that every block is evaluated and returned, vs JavaScript where you can use explicit returns to short-circuit the loop. If the last thing in the loop is an if block, it will return false if the condition is "skipped". Use a unified conditional block instead.
+>
+> JavaScript and Ruby handle if blocks differently. In Ruby, the last independent if block evaluated returns false if the conditions aren't met, which caused the map method to return [nil, 118, 119] instead of [65, 118, 119]. It took about an hour of debugging and finally trying a switch case instead, which resolved it. I learned that in JavaScript, if conditionals are statements, where in Ruby they are expressions (expressions always return data). I attempted using an explicit return to short-circuit the loop, but it didn't work. Implicit returns require me to think more carefully about how I structure conditional blocks. Going forward, I need to unify them rather than keep them separate, or use a switch case.
 
 ```ruby
 def wrap_ascii_code_uppercase(shifted_num)
@@ -178,18 +157,15 @@ def wrap_ascii_code_lowercase(shifted_num)
 end
 ```
 
-called with
+This function call will assign the result to `wrapped_ascii_byte` in `right_shift_ascii`(`ascii_code`, `shift_value`)
 
 ### Right-shift message characters `num` times
 
 ```ruby
 def right_shift_ascii(ascii_code, shift_value)
 
-
-
-  # I used map from memory, need to check my work
   shifted_ascii_code = ascii_code.map do |num|
-#binding.pry
+
     shifted_ascii_byte = num - shift_value
 
     case
@@ -216,58 +192,64 @@ def right_shift_ascii(ascii_code, shift_value)
   p "shifted ascii code: #{shifted_ascii_code}"
   shifted_ascii_code
 end
-```
 
-TESTING PLAYGROUND: Result for right_shift_ascii([65, 98, 99], 5) should be [85, 119, 120]
-right_shift_ascii([65, 98, 99], 5)
+# TESTING PLAYGROUND: Result for right_shift_ascii([65, 98, 99], 5) should be [85, 119, 120]
+#right_shift_ascii([65, 98, 99], 5)
+```
 
 ## Determine Flow
 
-[Array methods, Ruby Docs](https://docs.ruby-lang.org/en/3.4/Array.html)
+[Array methods (Ruby Docs)](https://docs.ruby-lang.org/en/3.4/Array.html)
 
-`create_caesar_cypher`(`original_string`) will dispatch function calls that will convert a string to ascii, right-shift the ascii code, convert ascii back to a string, then communicate the message.
+`create_caesar_cypher`(`original_string`, `shift_value`) will dispatch function calls that will convert a string to ascii, right-shift the ascii code, convert ascii back to a string, then communicate the message.
 
 1. Call `create_caesar_cypher`(`original_string`, `shift_value`) where `original_string` is `"Abc"` and `shift_value` is 5
 2. function call: `convert_to_ascii`(`original_string`) to convert `original_string` into corresponding ASCII numbers
    - use `original_string`#`each_byte`
    - returns to `ascii_code` array in `create_caesar_cypher`
-3. function call: `right_shift_ascii`(`ascii_code`) to right-shift each `num`.
+3. function call: `right_shift_ascii`(`ascii_code`) to right-shift each `num` by `shift_value`.
    - function call: `wrap_range_of_nums`(`num`)
-   - **note: **122 wraps to 97, 90 wraps to 65
+   - **note:** 122 wraps to 97, 90 wraps to 65
    - if `num` is outside the bounds of uppercase and lowercase ascii numbers, return #`puts` `"only uppercase and lowercase alphabet glyphs are permitted"`
    - **shifting:**
-   - `ascii_code`#`map` the array, reduce each number by `num` on each loop
-   - case: determine is uppercase or lowercase number range
-   - case -> if: when outside the lower bounds of uppercase or lowercase ascii numbers, continue subtracting from the top bounds.
+   - `ascii_code`#`map` the array, reduce each `num` by `shift_value` on each loop
+   - case: determine if `num` is in the uppercase or lowercase number range
+   - case -> when (uppercase/lowercase range) -> if block: when outside the lower bounds of ascii number range, continue subtracting from the top bound.
    - returns to `shifted_ascii_code` array in `create_caesar_cypher`
 
-4. function call: `convert_to_string`(`shifted_ascii_code`) to convert numbers back to corresponding ASCII numbers
+4. function call: `convert_to_string`(`shifted_ascii_code`) to convert numbers back to corresponding ASCII letters
    - #`map` using `shifted_ascii_code`#`chr`?
    - returns `converted_string` to `create_caesar_cypher`
 5. function call `communicate_shifted_message`(`converted_string`)
    - `#puts` `converted_string`
 
 Basically:  
-def `create_caesar_cypher`(`original_string`)
+def `create_caesar_cypher`(`original_string`, `shift_value`)
 
 `"ascii_code"` = `convert_to_ascii`(`original_string`)  
-`"shifted_ascii_code"` = `right_shift_ascii`(`ascii_code`) <= goes to `wrap_ascii_code` helper
+`"shifted_ascii_code"` = `right_shift_ascii`(`ascii_code`) <= `ascii_code` sent to `wrap_ascii_code` helper
 `"converted_string"` = `convert_to_string`(`shifted_ascii_code`)  
 `communicate_shifted_message`(`converted_string`)  
 end
 
-def `wrap_ascii_code_uppercase`(`shifted_num`)
-wraps code if exceeds lower bounds to continue subtracting from upperbound ascii numbers
-returns `adjusted_shift` to `shifted_ascii_code`
+def `wrap_ascii_code_uppercase`(`shifted_num`)  
+wraps code if exceeds lower bounds to continue subtracting from upper-bound ascii numbers  
+returns `adjusted_shift` to `shifted_ascii_code`  
 end
 
-lowercase wrap equivalent to uppercase code above.
+def `wrap_ascii_code_lowercase`(`shifted_num`)  
+wraps code if exceeds lower bounds to continue subtracting from upper-bound ascii numbers  
+returns `adjusted_shift` to `shifted_ascii_code`  
+end
 
 ## Code Graveyard
 
-I don't remember why I thought I needed this, but it's here just in case:
+<details>
+<summary>TLDR</summary>
 
 #### + + + Determine case of string characters + + +
+
+I don't remember why I thought I needed this, but it's here just in case:
 
 Whoops. My helper function needs a helper function.
 
@@ -284,3 +266,38 @@ class String
   end
 end
 ```
+
+## dead: wrapping upper/lower limits
+
+~~Wrap numbers with upper limit: [modulo method StackOverflow.com](https://stackoverflow.com/questions/10927914/limit-a-number-and-rotate-it-within-a-range)~~
+
+~~Linked solution is incorrect (12 % 12 is 0, not 12), but I can make it work by adding +1 to the formula.~~  
+~~To use a custom number, I need to subtract the `min` from the `num`, and % from the `max`/`min` number value (+1) (`max` - `min` will give one number short of the actual value), and add the `min` number back in.~~
+
+my old thinking before I realized I was overthinking this whole thing:
+~~((`num` - `min`)) % ((`max` - `min`) + 1) + `min`~~  
+~~so if `num` = `120`, and `max` = `122` and `min` = `65`,~~  
+~~((`120` - `65`)) % ((`122` - `65`) + 1) + `65`~~  
+~~55 % (57 + 1) + 65~~  
+~~55 % 58 + 65~~  
+~~55 + 65~~  
+~~120~~
+
+~~**note: **122 wraps to 97, 90 wraps to 65~~
+
+~~def wrap_range_of_nums(num)~~  
+~~if num >= 97 && num <= 122 do~~  
+~~min = 97~~  
+~~max = 122~~
+
+~~elsif num >= 65 && num <= 90 do~~  
+~~min = 65~~  
+~~max = 90~~
+
+~~else return puts "error message"~~  
+~~end~~  
+~~end~~
+
+For the life of me, I can't figure out why I was thinking about wrapping the numbers in such a literal way. I can just use simple math.
+
+</details>

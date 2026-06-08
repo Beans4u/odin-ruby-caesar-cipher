@@ -22,9 +22,6 @@ def convert_to_ascii(original_string)
   end
 end
 
-# TESTING PLAYGROUND: Expected output for "Abc": [65 98 99]
-# p convert_to_ascii("Abc") 
-
 # + + + HELPER for right_shift_ASCII HELPER: Wrapping lower/upper-limit numbers + + +
 def wrap_ascii_code_uppercase(shifted_num)
 
@@ -46,11 +43,8 @@ end
 # + + + Right-shift message characters num times + + +
 def right_shift_ascii(ascii_code, shift_value)
 
-  
-
-  # I used map from memory, need to check my work
   shifted_ascii_code = ascii_code.map do |num|
-    
+
     shifted_ascii_byte = num - shift_value
 
     case
