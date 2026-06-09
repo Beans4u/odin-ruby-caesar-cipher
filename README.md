@@ -32,3 +32,9 @@ ruby caesar_cipher.rb
 ## Project Source
 
 [Assignment](https://www.theodinproject.com/lessons/ruby-caesar-cipher) from The Odin Project [Full Stack Ruby on Rails](https://www.theodinproject.com/paths/full-stack-ruby-on-rails) open-source curriculum.
+
+## Dev log & Code
+
+Thinking through problems and documenting lessons learned in my [dev log](https://github.com/Beans4u/odin-ruby-caesar-cipher/blob/main/DEV_LOG.md). I found this to be invaluable since I had to step away from this for a few days - multiple times.
+
+Run it yourself: [caesar_cipher.rb](https://github.com/Beans4u/odin-ruby-caesar-cipher/blob/main/caesar_cipher.rb)
