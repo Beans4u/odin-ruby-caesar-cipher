@@ -12,9 +12,9 @@
 
 **Constraints:**
 
-- Must warp z-a / Z-A
+- Must warp z-a / Z-A (must shift to the right)
 - Translation must retain case
-- Must shift to the right
+- Must preserve space character
 
 Numbers, symbols, special characters not listed in assignment objectives and will not be supported in this project.
 
@@ -31,9 +31,63 @@ Numbers, symbols, special characters not listed in assignment objectives and wil
 - [x] Create `caesar_cipher.rb` doc
 - [x] Flesh out `README.doc`
 
+## Determine Flow
+
+I moved this section from the bottom as it makes more sense to have the final code blocks below the flow/behaviour/logic planning details.
+
+Final code blocks may differ from initial planning shown here. Below is is a space I used to figure out how to plan and organize the app code.
+
+[Array methods (Ruby Docs)](https://docs.ruby-lang.org/en/3.4/Array.html)
+
+`create_caesar_cypher`(`string`, `shift_by`) will dispatch function calls that will convert a string to ascii, right-shift the ascii code, convert ascii back to a string, then communicate the message.
+
+<details>
+<summary>TLDR: working through app behaviour</summary>
+
+1. Call `create_caesar_cypher`(`string`, `shift_by`) where `original_string` is `"Abc def"` and `shift_value` is 5
+2. function call: `convert_to_ascii`(`original_string`) to convert `original_string` into corresponding ASCII numbers
+   - if `num` is outside the bounds of uppercase and lowercase ascii numbers, return #`puts` `"only uppercase and lowercase alphabet glyphs are permitted"`
+   - use `original_string`#`each_byte`
+   - returns to `ascii_code` array in `create_caesar_cypher`
+3. function call: `right_shift_ascii`(`ascii_code`) to right-shift each `num` by `shift_value`.
+   - function call: `wrap_ascii_code_uppercase/lowercase`(`shifted_ascii_byte`)
+   - **note:** 122 wraps to 97, 90 wraps to 65
+   - **shifting:**
+   - `ascii_code`#`map` the array, reduce each `num` by `shift_value` on each loop
+   - case: determine if `num` is in the uppercase or lowercase number range
+   - case -> when (uppercase/lowercase range) -> if block: when outside the lower bounds of ascii number range, continue subtracting from the top bound.
+   - returns to `shifted_ascii_code` array in `create_caesar_cypher`
+
+4. function call: `convert_to_string`(`shifted_ascii_code`) to convert numbers back to corresponding ASCII letters
+   - #`map` using `shifted_ascii_code`#`chr`?
+   - returns `converted_string` to `create_caesar_cypher`
+5. function call `communicate_shifted_message`(`converted_string`)
+   - `#puts` `converted_string`
+
+Basically:  
+def `create_caesar_cypher`(`string`, `shift_by`)
+
+`"ascii_code"` = `convert_to_ascii`(`original_string`)  
+`"shifted_ascii_code"` = `right_shift_ascii`(`ascii_code`) <= `ascii_code` sent to `wrap_ascii_code` helper
+`"converted_string"` = `convert_to_string`(`shifted_ascii_code`)  
+`communicate_shifted_message`(`converted_string`)  
+end
+
+def `wrap_ascii_code_uppercase`(`shifted_num`)  
+wraps code if exceeds lower bounds to continue subtracting from upper-bound ascii numbers  
+returns `adjusted_shift` to `shifted_ascii_code`  
+end
+
+def `wrap_ascii_code_lowercase`(`shifted_num`)  
+wraps code if exceeds lower bounds to continue subtracting from upper-bound ascii numbers  
+returns `adjusted_shift` to `shifted_ascii_code`  
+end
+
+</details>
+
 ## Determine Logic, Data
 
-### Unicode
+### + + Unicode + +
 
 [Ruby unicode](https://www.rubyguides.com/2019/05/ruby-ascii-unicode/),  
 [Ascii-Code.com code charts](https://www.ascii-code.com/characters/ascii-alphabet-characters),
@@ -46,11 +100,12 @@ ASCII_BOUNDS = {
   min_lowercase: 97,
   max_lowercase: 122,
   min_uppercase: 65,
-  max_uppercase: 90
+  max_uppercase: 90,
+  space_character: 32,
 }
 ```
 
-### Convert int to ASCII, save as array
+### + + Convert int to ASCII, save as array + +
 
 I'll need a helper that converts the string to ASCII and hand it off to another helper that will right-shift the result.  
 I'll want to right-shift the result in an array, so I'll convert it here as well.
@@ -68,33 +123,25 @@ Output string: "Vwx" ([V, w, x])
 
 ```ruby
 def convert_to_ascii(original_string)
-
   ascii_array = original_string.each_byte.to_a do |char|
-
-    # Short-circuit if character is invalid
-    unless (char >= ASCII_BOUNDS[:min_uppercase] && char <= ASCII_BOUNDS[:max_uppercase]) || (char >= ASCII_BOUNDS[:min_lowercase] && char <= ASCII_BOUNDS[:max_lowercase])
-      return puts "Characters outside of a-z or A-Z are not accepted. Please try again."
-    end
-
     ascii_array
-
   end
 end
 
-# TESTING PLAYGROUND: Expected output for "Abc": [65 98 99]
+# TESTING PLAYGROUND: Expected output for "Abc": [65, 98, 99]
 # p convert_to_ascii("Abc")
 ```
 
 This function call will assign the result to `ascii_code`:  
 `ascii_code` = `convert_to_ascii`(`"Abc"`)
 
-### Wrapping lower/upper-limit numbers
+### + + Wrapping lower/upper-limit numbers + +
 
 In order for A to wrap back to Z (and a to z), I need to reset the shift count from the top of the range of allowed ASCII numbers once it exceeds the minimum ASCII number.
 
 **Note:** Numbers outside these ranges will be invalid and trigger an error message.
 
-When the right-shift takes us below `min_uppercase`/`min_lowercase`, I'll subtract from `max_uppercase`/`max_lowercase`.
+When the right-shift takes us below `min_uppercase`/`min_lowercase`, I'll continue subtracting from `max_uppercase`/`max_lowercase`.
 
 abcdefghijklmnopqrstuvwxyz
 
@@ -137,29 +184,29 @@ Looks good to me. So I should do something like this:
 >
 > JavaScript and Ruby handle if blocks differently. In Ruby, the last independent if block evaluated returns false if the conditions aren't met, which caused the map method to return [nil, 118, 119] instead of [65, 118, 119]. It took about an hour of debugging and finally trying a switch case instead, which resolved it. I learned that in JavaScript, if conditionals are statements, where in Ruby they are expressions (expressions always return data). I attempted using an explicit return to short-circuit the loop, but it didn't work. Implicit returns require me to think more carefully about how I structure conditional blocks. Going forward, I need to unify them rather than keep them separate, or use a switch case.
 
+> **Lesson learned:**  
+> Need to use (wrap\*adjust - 1) in order to wrap correctly from lower bound to upper bound. Subtracting the full amount from the upper bound overshoots the shift by one because it doesn't know we're counting down from the lower bound and should start subtracting from the top of the upper bound rather than one down from the top of it.  
+> e.g. Right shift of 5 for A when A is 65. 90 - 5 is 85, which would cause "A" to convert to "U" instead of "V", but since we can't count down from 65, I need to subtract an additional number when wrapping.
+
 ```ruby
 def wrap_ascii_code_uppercase(shifted_num)
-
     wrap_adjust = ASCII_BOUNDS[:min_uppercase] - shifted_num
-    adjusted_shift = ASCII_BOUNDS[:max_uppercase] - wrap_adjust
+    adjusted_shift = ASCII_BOUNDS[:max_uppercase] - (wrap_adjust - 1)
     adjusted_shift
-
 end
 ```
 
 ```ruby
 def wrap_ascii_code_lowercase(shifted_num)
-
     wrap_adjust = ASCII_BOUNDS[:min_lowercase] - shifted_num
-    adjusted_shift = ASCII_BOUNDS[:max_lowercase] - wrap_adjust
+    adjusted_shift = ASCII_BOUNDS[:max_lowercase] - (wrap_adjust - 1)
     adjusted_shift
-
 end
 ```
 
 This function call will assign the result to `wrapped_ascii_byte` in `right_shift_ascii`(`ascii_code`, `shift_value`)
 
-### Right-shift message characters `num` times
+### + + Right-shift message characters `num` times + +
 
 ```ruby
 def right_shift_ascii(ascii_code, shift_value)
@@ -169,6 +216,8 @@ def right_shift_ascii(ascii_code, shift_value)
     shifted_ascii_byte = num - shift_value
 
     case
+      when num == ASCII_BOUNDS[:space_character]
+          num
       when num >= ASCII_BOUNDS[:min_uppercase] && num <= ASCII_BOUNDS[:max_uppercase]
         if shifted_ascii_byte < ASCII_BOUNDS[:min_uppercase]
           wrapped_ascii_byte = wrap_ascii_code_uppercase(shifted_ascii_byte)
@@ -185,11 +234,8 @@ def right_shift_ascii(ascii_code, shift_value)
           shifted_ascii_byte
         end
 
-    end
-
-  end
-
-  p "shifted ascii code: #{shifted_ascii_code}"
+    end #case block
+  end #map block
   shifted_ascii_code
 end
 
@@ -197,59 +243,59 @@ end
 #right_shift_ascii([65, 98, 99], 5)
 ```
 
-## Determine Flow
+### + + Convert numbers back to letters + +
 
-[Array methods (Ruby Docs)](https://docs.ruby-lang.org/en/3.4/Array.html)
-
-`create_caesar_cypher`(`original_string`, `shift_value`) will dispatch function calls that will convert a string to ascii, right-shift the ascii code, convert ascii back to a string, then communicate the message.
-
-1. Call `create_caesar_cypher`(`original_string`, `shift_value`) where `original_string` is `"Abc"` and `shift_value` is 5
-2. function call: `convert_to_ascii`(`original_string`) to convert `original_string` into corresponding ASCII numbers
-   - use `original_string`#`each_byte`
-   - returns to `ascii_code` array in `create_caesar_cypher`
-3. function call: `right_shift_ascii`(`ascii_code`) to right-shift each `num` by `shift_value`.
-   - function call: `wrap_range_of_nums`(`num`)
-   - **note:** 122 wraps to 97, 90 wraps to 65
-   - if `num` is outside the bounds of uppercase and lowercase ascii numbers, return #`puts` `"only uppercase and lowercase alphabet glyphs are permitted"`
-   - **shifting:**
-   - `ascii_code`#`map` the array, reduce each `num` by `shift_value` on each loop
-   - case: determine if `num` is in the uppercase or lowercase number range
-   - case -> when (uppercase/lowercase range) -> if block: when outside the lower bounds of ascii number range, continue subtracting from the top bound.
-   - returns to `shifted_ascii_code` array in `create_caesar_cypher`
-
-4. function call: `convert_to_string`(`shifted_ascii_code`) to convert numbers back to corresponding ASCII letters
-   - #`map` using `shifted_ascii_code`#`chr`?
-   - returns `converted_string` to `create_caesar_cypher`
-5. function call `communicate_shifted_message`(`converted_string`)
-   - `#puts` `converted_string`
-
-Basically:  
-def `create_caesar_cypher`(`original_string`, `shift_value`)
-
-`"ascii_code"` = `convert_to_ascii`(`original_string`)  
-`"shifted_ascii_code"` = `right_shift_ascii`(`ascii_code`) <= `ascii_code` sent to `wrap_ascii_code` helper
-`"converted_string"` = `convert_to_string`(`shifted_ascii_code`)  
-`communicate_shifted_message`(`converted_string`)  
+```ruby
+def convert_to_string(received_code)
+  translated_code = received_code.map do |num|
+    num.chr
+  end
+  translated_code.join()
 end
+```
 
-def `wrap_ascii_code_uppercase`(`shifted_num`)  
-wraps code if exceeds lower bounds to continue subtracting from upper-bound ascii numbers  
-returns `adjusted_shift` to `shifted_ascii_code`  
-end
+### + + BREAK CONDITION: Short-circuit if character is invalid + +
 
-def `wrap_ascii_code_lowercase`(`shifted_num`)  
-wraps code if exceeds lower bounds to continue subtracting from upper-bound ascii numbers  
-returns `adjusted_shift` to `shifted_ascii_code`  
+I moved this out of the `convert_to_ascii` function in order to short-circuit operations directly from the main program. I'm also going to try using ranges rather than `&&` with `>=`/`<=` comparison operators. I'm worried it can create edge cases where 65.7 is valid, but converting characters to ascii acts as a safeguard against this, so want to experiment with it.
+
+[range: methods for comparing](https://docs.ruby-lang.org/en/3.4/Range.html#class-Range-label-Methods+for+Comparing)
+
+```ruby
+# Short-circuit if character is invalid
+def invalid_character(received_code)
+  received_code.each do |num|
+    if ASCII_BOUNDS[:space_character] == num || (ASCII_BOUNDS[:min_uppercase]..ASCII_BOUNDS[:max_uppercase]) === num || (ASCII_BOUNDS[:min_lowercase]..ASCII_BOUNDS[:max_lowercase]) === num
+      p "Num is #{num}"
+      false
+    else
+      puts "Characters outside of space, a-z, or A-Z are not accepted. Please try again."
+      return true
+    end
+  end
 end
+```
+
+### + + PROGRAM + +
+
+```ruby
+def create_caesar_cypher(string, shift_by)
+
+  ascii_code = convert_to_ascii(string)
+  return if invalid_character(ascii_code) == true
+  shifted_ascii_code = right_shift_ascii(ascii_code, shift_by)
+  converted_string = convert_to_string(shifted_ascii_code)
+  converted_string
+end
+```
 
 ## Code Graveyard
 
 <details>
 <summary>TLDR</summary>
 
-#### + + + Determine case of string characters + + +
+### + + Determine case of string characters + +
 
-I don't remember why I thought I needed this, but it's here just in case:
+_I don't remember why I thought I needed this, but it's here just in case:_
 
 Whoops. My helper function needs a helper function.
 
@@ -267,37 +313,39 @@ class String
 end
 ```
 
-## dead: wrapping upper/lower limits
-
-~~Wrap numbers with upper limit: [modulo method StackOverflow.com](https://stackoverflow.com/questions/10927914/limit-a-number-and-rotate-it-within-a-range)~~
-
-~~Linked solution is incorrect (12 % 12 is 0, not 12), but I can make it work by adding +1 to the formula.~~  
-~~To use a custom number, I need to subtract the `min` from the `num`, and % from the `max`/`min` number value (+1) (`max` - `min` will give one number short of the actual value), and add the `min` number back in.~~
-
-my old thinking before I realized I was overthinking this whole thing:
-~~((`num` - `min`)) % ((`max` - `min`) + 1) + `min`~~  
-~~so if `num` = `120`, and `max` = `122` and `min` = `65`,~~  
-~~((`120` - `65`)) % ((`122` - `65`) + 1) + `65`~~  
-~~55 % (57 + 1) + 65~~  
-~~55 % 58 + 65~~  
-~~55 + 65~~  
-~~120~~
-
-~~**note: **122 wraps to 97, 90 wraps to 65~~
-
-~~def wrap_range_of_nums(num)~~  
-~~if num >= 97 && num <= 122 do~~  
-~~min = 97~~  
-~~max = 122~~
-
-~~elsif num >= 65 && num <= 90 do~~  
-~~min = 65~~  
-~~max = 90~~
-
-~~else return puts "error message"~~  
-~~end~~  
-~~end~~
+### + + dead: wrapping upper/lower limits + +
 
 For the life of me, I can't figure out why I was thinking about wrapping the numbers in such a literal way. I can just use simple math.
+
+Wrap numbers with upper limit: [modulo method StackOverflow.com](https://stackoverflow.com/questions/10927914/limit-a-number-and-rotate-it-within-a-range)
+
+Linked solution is incorrect (12 % 12 is 0, not 12), but I can make it work by adding +1 to the formula.  
+To use a custom number, I need to subtract the `min` from the `num`, and % from the `max`/`min` number value (+1) (`max` - `min` will give one number short of the actual value), and add the `min` number back in.
+
+my old thinking before I realized I was overthinking this whole thing:
+((`num` - `min`)) % ((`max` - `min`) + 1) + `min`  
+so if `num` = `120`, and `max` = `122` and `min` = `65`,  
+((`120` - `65`)) % ((`122` - `65`) + 1) + `65`  
+55 % (57 + 1) + 65  
+55 % 58 + 65  
+55 + 65  
+120
+
+**note: **122 wraps to 97, 90 wraps to 65
+
+```ruby
+def wrap_range_of_nums(num)
+  if num >= 97 && num <= 122 do
+      min = 97
+      max = 122
+
+    elsif num >= 65 && num <= 90 do
+      min = 65
+      max = 90
+
+    else return puts "error message"
+  end
+end
+```
 
 </details>
